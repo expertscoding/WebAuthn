@@ -1,0 +1,67 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - WebAuthnDemo</title>
+
+    <link rel="stylesheet" href="~/css/lib/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/lib/sweetalert2/sweetalert2.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">WebAuthnDemo</a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <partial name="_CookieConsentPartial" />
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2019 - <a asp-controller="Home" asp-action="Index">WebAuthnDemo</a>
+        </div>
+    </footer>
+
+    <script type="systemjs-importmap" src="~/js/importmap.json" asp-append-version="true">
+    </script>
+    <script type="text/javascript" src="~/lib/systemjs/system.min.js"></script>
+
+    <script src="~/lib/jquery/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/bootstrap.min.js"></script>
+    <script type="text/javascript">
+        var systemResolve = System.resolve;
+        System.resolve = function (name, parent) {
+            name = name.toLocaleLowerCase();
+            return Promise.resolve(systemResolve.call(this, name, parent))
+                .then(function (resolved) {
+                    if (!resolved.endsWith('.js'))
+                        resolved += '.js';
+                    return resolved;
+                }).catch(function (reason) {
+                    console.log(`Error in module resolution: ${reason}`);
+                });
+        };
+
+    </script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

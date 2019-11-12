@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    //"allowSyntheticDefaultImports": true,
+    "outDir": "wwwroot/js/",
+    "noImplicitAny": false,
+    "noEmitOnError": true,
+    "removeComments": false,
+    "sourceRoot": "/Scripts/",
+    "target": "esnext",
+    "lib": [ "dom", "es2015", "es2018.promise", "es5" ],
+    "module": "system",
+    "inlineSourceMap": true,
+    "baseUrl": "./Scripts",
+    "moduleResolution": "node",
+    "paths": {
+      ".": [ "./" ]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "wwwroot"
+  ],
+  "compileOnSave": false
+}
