@@ -37,6 +37,7 @@ namespace WebAuthnDemo
                 options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
             });
 
+            services.AddHttpContextAccessor();
             services.AddFido2(options => Configuration.Bind(nameof(Fido2Configuration), options));
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);

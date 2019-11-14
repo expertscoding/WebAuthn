@@ -1,7 +1,42 @@
-﻿@model int
+﻿@model RegisteredKeysModel
+@inject Fido2NetLib.Development.DevelopmentInMemoryStore Store
 
 @{
     ViewBag.Title = "Listado de claves";
+    var username = Model.Username;
+
+    var user = Store.GetUser(username);
+
+    var existingCredentials = Store.GetCredentialsByUser(user);
 }
 
 <h2>Listado de claves</h2>
+<table class="table">
+    <thead>
+    <tr>
+        <td>F. Registro</td>
+        <td>Usos</td>
+        <td>UserHandle</td>
+        <td>Id. Usuario</td>
+        <td>Tipo Decl.</td>
+        <td>Clave Pública</td>
+    </tr>
+    </thead>
+    @foreach (var item in existingCredentials)
+    {
+        var userHandle = System.Text.Encoding.UTF8.GetString(item.UserHandle);
+        var userId = System.Text.Encoding.UTF8.GetString(item.UserId);
+        var publicKey = Convert.ToBase64String(item.PublicKey);
+
+        <tr>
+            <td>@item.RegDate</td>
+            <td>@item.SignatureCounter</td>
+            <td>@userHandle</td>
+            <td>@userId</td>
+            <td>@item.CredType</td>
+            <td>
+                @publicKey.Substring(0, 40).Substring(0, 40)...
+            </td>
+        </tr>
+    }
+</table>

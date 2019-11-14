@@ -19,9 +19,9 @@ namespace WebAuthnDemo.Controllers
             return View();
         }
 
-        public IActionResult RegisteredKeys()
+        public IActionResult RegisteredKeys(string id)
         {
-            return View();
+            return View(new RegisteredKeysModel{Username = id});
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
