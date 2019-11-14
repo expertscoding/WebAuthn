@@ -42,9 +42,34 @@ html {
 }
 
 body {
-  /* Margin bottom by footer height */
-  margin-bottom: 60px;
+    /* Margin bottom by footer height */
+    margin-bottom: 60px;
 }
+
+#bkgimg {
+    position: relative;
+    overflow: hidden;
+    height: 100vh;
+    margin-bottom: -60px;
+}
+
+#bkgimg:before {
+    content: "";
+    position: absolute;
+    width: 300%;
+    height: 300%;
+    top: -80%;
+    left: -140%;
+    z-index: -1;
+    background: url(../images/logo_color.svg) 0 0;
+    background-repeat: no-repeat;
+    background-position: left center;
+    background-size: 50%;
+    background-attachment: fixed;
+    opacity: 0.4;
+    transform: rotate(30deg);
+}
+
 .footer {
   position: absolute;
   bottom: 0;
