@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace WebAuthnDemo.Controllers
 {
+    [Produces("application/json")]
     [Route("[controller]")]
     [ApiController]
     public class FidoController : ControllerBase
@@ -26,6 +27,7 @@ namespace WebAuthnDemo.Controllers
 
         [HttpPost]
         [Route("[action]")]
+        [Produces("application/json", Type = typeof(CredentialCreateOptions))]
         public ActionResult MakeCredentialOptions([FromForm] string username,
             [FromForm] string displayName,
             [FromForm] string attType,
@@ -92,6 +94,7 @@ namespace WebAuthnDemo.Controllers
 
         [HttpPost]
         [Route("[action]")]
+        [Produces("application/json", Type = typeof(Fido2.CredentialMakeResult))]
         public async Task<ActionResult> MakeCredential(
             [FromBody] AuthenticatorAttestationRawResponse attestationResponse)
         {
@@ -136,7 +139,8 @@ namespace WebAuthnDemo.Controllers
         }
 
         [HttpPost]
-        [Route("/assertionOptions")]
+        [Route("[action]")]
+        [Produces("application/json", Type = typeof(AssertionOptions))]
         public ActionResult AssertionOptionsPost([FromForm] string username, [FromForm] string userVerification)
         {
             try
@@ -191,7 +195,8 @@ namespace WebAuthnDemo.Controllers
         }
 
         [HttpPost]
-        [Route("/makeAssertion")]
+        [Route("[action]")]
+        [Produces("application/json", Type = typeof(AssertionVerificationResult))]
         public async Task<ActionResult> MakeAssertion([FromBody] AuthenticatorAssertionRawResponse clientResponse)
         {
             try

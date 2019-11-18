@@ -1,37 +1,28 @@
 ﻿import Swal, { SweetAlertOptions } from 'sweetalert2';
 import { helper } from 'helpers';
+import { Fido2 } from 'Fido2';
 
 class Login {
+    private static client:Fido2.FidoClient;
+
     constructor() {
         document.getElementById('login').addEventListener('submit', this.handleRegistration);
+        Login.client = new Fido2.FidoClient(`https://${window.location.host}`);
     }
 
     async handleRegistration(event): Promise<void> {
         event.preventDefault();
 
-        let username = $("#loginUsername").val() as string;;
-
-        // prepare form post data
-        var formData = new FormData();
-        formData.append('username', username);
-
-        // send to server for registering
-        let makeAssertionOptions;
+        let username = (<HTMLInputElement>document.getElementById('loginUsername')).value;
+        
+        // send to server for login
+        let makeAssertionOptions = new Fido2.AssertionOptions();
         try {
-            var res = await fetch('/assertionOptions', {
-                method: 'POST', // or 'PUT'
-                body: formData, // data can be `string` or {object}!
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-
-            makeAssertionOptions = await res.json();
+            makeAssertionOptions = await Login.client.assertionOptionsPost(username, "");
         } catch (e) {
             helper.showErrorAlert("Request to server failed", e);
         }
 
-        console.log("Assertion Options Object", makeAssertionOptions);
 
         // show options error to user
         if (makeAssertionOptions.status !== "ok") {
@@ -41,17 +32,6 @@ class Login {
             return;
         }
 
-        // todo: switch this to coercebase64
-        const challenge = makeAssertionOptions.challenge.replace(/-/g, "+").replace(/_/g, "/");
-        makeAssertionOptions.challenge = Uint8Array.from(atob(challenge), c => (c as String).charCodeAt(0));
-
-        // fix escaping. Change this to coerce
-        makeAssertionOptions.allowCredentials.forEach(listItem => {
-            var fixedId = listItem.id.replace(/\_/g, "/").replace(/\-/g, "+");
-            listItem.id = Uint8Array.from(atob(fixedId), c => (c as String).charCodeAt(0));
-        });
-
-        console.log("Assertion options", makeAssertionOptions);
 
         var modalOptions = <SweetAlertOptions>{
             title: 'Login in...',
@@ -66,51 +46,67 @@ class Login {
         Swal.fire(modalOptions);
 
         // ask browser for credentials (browser will ask connected authenticators)
-        let credential;
+        const requestOptions = Login.parseServerOptions(makeAssertionOptions);
+        let credential: Credential = { id: "", type: "" };
         try {
-            credential = await navigator.credentials.get({ publicKey: makeAssertionOptions })
+            credential = await navigator.credentials.get(requestOptions);
         } catch (err) {
             helper.showErrorAlert(err.message ? err.message : err);
         }
 
         try {
-            await Login.verifyAssertionWithServer(credential);
+            await Login.verifyAssertionWithServer(credential as PublicKeyCredential);
         } catch (e) {
             helper.showErrorAlert("Could not verify assertion", e);
         }
     }
 
-    private static async verifyAssertionWithServer(assertedCredential) {
+    private static parseServerOptions(options: Fido2.IAssertionOptions): CredentialRequestOptions {
+        console.log("Assertion Options Object", options);
 
+        let requestOptions: any = { publicKey: {} };
+
+        // todo: switch this to coercebase64
+        const challenge = options.challenge.replace(/-/g, "+").replace(/_/g, "/");
+        requestOptions.publicKey.challenge = Uint8Array.from(atob(challenge), c => (c as String).charCodeAt(0));
+
+        // fix escaping. Change this to coerce
+        requestOptions.publicKey.allowCredentials = options.allowCredentials.map(c => {
+            var desc = <PublicKeyCredentialDescriptor><any>c;
+            var fixedId = c.id.replace(/\_/g, "/").replace(/\-/g, "+");
+            desc.id = Uint8Array.from(atob(fixedId), c => (c as String).charCodeAt(0));
+            return c;
+        });
+
+        console.log("Assertion options", requestOptions);
+
+        return <CredentialRequestOptions>requestOptions;
+    }
+
+
+    private static async verifyAssertionWithServer(assertedCredential: PublicKeyCredential) {
         // Move data into Arrays incase it is super long
-        let authData = new Uint8Array(assertedCredential.response.authenticatorData);
-        let clientDataJSON = new Uint8Array(assertedCredential.response.clientDataJSON);
-        let rawId = new Uint8Array(assertedCredential.rawId);
-        let sig = new Uint8Array(assertedCredential.response.signature);
-        const data = {
-            id: assertedCredential.id,
-            rawId: helper.coerceToBase64Url(rawId),
-            type: assertedCredential.type,
-            extensions: assertedCredential.getClientExtensionResults(),
-            response: {
-                authenticatorData: helper.coerceToBase64Url(authData),
-                clientDataJson: helper.coerceToBase64Url(clientDataJSON),
-                signature: helper.coerceToBase64Url(sig)
-            }
-        };
+        const authenticatorResponse = <AuthenticatorAssertionResponse>assertedCredential.response;
+        const authData = new Uint8Array(authenticatorResponse.authenticatorData);
+        const clientDataJson = new Uint8Array(authenticatorResponse.clientDataJSON);
+        const rawId = new Uint8Array(assertedCredential.rawId);
+        const sig = new Uint8Array(authenticatorResponse.signature);
 
-        let response;
+        const rawResponse = new Fido2.AuthenticatorAssertionRawResponse();
+        rawResponse.id = assertedCredential.id;
+        rawResponse.rawId = helper.coerceToBase64Url(rawId);
+        rawResponse.type = <any>assertedCredential.type;
+        rawResponse.extensions = new Fido2.AuthenticationExtensionsClientOutputs();
+        rawResponse.response = new Fido2.AssertionResponse({
+            authenticatorData: helper.coerceToBase64Url(authData),
+            clientDataJson: helper.coerceToBase64Url(clientDataJson),
+            signature: helper.coerceToBase64Url(sig)
+        });
+
+
+        let response = new Fido2.AssertionVerificationResult();
         try {
-            let res = await fetch("/makeAssertion", {
-                method: 'POST', // or 'PUT'
-                body: JSON.stringify(data), // data can be `string` or {object}!
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            response = await res.json();
+            response = await Login.client.makeAssertion(rawResponse);
         } catch (e) {
             helper.showErrorAlert("Request to server failed", e);
             throw e;
@@ -138,7 +134,8 @@ class Login {
             focusConfirm: false,
             focusCancel: false
         };
-        Swal.fire(modalOptions).then(_ => window.location.href = "home/registeredKeys/" + $("#loginUsername").val());
+        let username = (<HTMLInputElement>document.getElementById('loginUsername')).value;
+        Swal.fire(modalOptions).then(_ => window.location.href = `home/registeredKeys/${username}`);
     }
 }
 

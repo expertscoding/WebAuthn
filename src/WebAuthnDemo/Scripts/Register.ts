@@ -1,73 +1,39 @@
 ﻿import Swal, { SweetAlertOptions } from 'sweetalert2';
 import { helper } from 'helpers';
+import { Fido2 } from 'Fido2';
 
 class Register {
+    private static client:Fido2.FidoClient;
+
     constructor() {
-        //$("#register").on("submit", this.handleRegistration);
         document.getElementById('register').addEventListener('submit', this.handleRegistration);
+        Register.client = new Fido2.FidoClient(`https://${window.location.host}`);
     }
 
     async handleRegistration(event): Promise<void> {
         event.preventDefault();
 
-        let username = $("#registerUsername").val() as string;
-        let displayName = $("#registerDisplayName").val() as string;
+        let username = (<HTMLInputElement>document.getElementById('registerUsername')).value;
+        let displayName = (<HTMLInputElement>document.getElementById('registerDisplayName')).value;
 
-        // possible values: none, direct, indirect
-        let attestationType = "none";
-        // possible values: <empty>, platform, cross-platform
-        let authenticatorAttachment = "";
-        // possible values: preferred, required, discouraged
-        let userVerification = "preferred";
-        // possible values: true,false
-        let requireResidentKey = "false";
+        let options: Fido2.ICredentialCreateOptions = new Fido2.CredentialCreateOptions();
 
-
-        // prepare form post data
-        var data = new FormData();
-        data.append('username', username);
-        data.append('displayName', displayName);
-        data.append('attType', attestationType);
-        data.append('authType', authenticatorAttachment);
-        data.append('userVerification', userVerification);
-        data.append('requireResidentKey', requireResidentKey);
-
-        // send to server for registering
-        let makeCredentialOptions: any;
         try {
-            makeCredentialOptions = await Register.fetchMakeCredentialOptions(data);
+            // attestationType: possible values: none, direct, indirect
+            // authenticatorAttachment: possible values: <empty>, platform, cross-platform
+            // userVerification: possible values: preferred, required, discouraged
+            // requireResidentKey: possible values: true,false
+            options = await Register.client.makeCredentialOptions(username, displayName, "none", "", false, "preferred");
         } catch (e) {
-            console.error(e);
-            let msg = "Something went really wrong";
-            helper.showErrorAlert(msg);
+            helper.showErrorAlert("Request to server failed", e);
         }
 
-
-        console.log("Credential Options Object", makeCredentialOptions);
-
-        if (makeCredentialOptions.status !== "ok") {
-            console.log("Error creating credential options");
-            console.log(makeCredentialOptions.errorMessage);
-            helper.showErrorAlert(makeCredentialOptions.errorMessage);
+        if (options.status !== "ok") {
+            helper.showErrorAlert(`Error creating credential options: ${options.errorMessage}`);
             return;
         }
 
-        // Turn the challenge back into the accepted format of padded base64
-        makeCredentialOptions.challenge = helper.coerceToArrayBuffer(makeCredentialOptions.challenge);
-        // Turn ID into a UInt8Array Buffer for some reason
-        makeCredentialOptions.user.id = helper.coerceToArrayBuffer(makeCredentialOptions.user.id);
-
-        makeCredentialOptions.excludeCredentials = makeCredentialOptions.excludeCredentials.map((c) => {
-            c.id = helper.coerceToArrayBuffer(c.id);
-            return c;
-        });
-
-        if (makeCredentialOptions.authenticatorSelection.authenticatorAttachment === null)
-            makeCredentialOptions.authenticatorSelection.authenticatorAttachment = undefined;
-
-        console.log("Credential Options Formatted", makeCredentialOptions);
-
-        var modalOptions = <SweetAlertOptions>{
+        let modalOptions = <SweetAlertOptions>{
             title: 'Registrando...',
             text: 'Toca el botón de la llave de seguridad para finalizar el registro.',
             imageUrl: "/images/securitykey.min.svg",
@@ -81,11 +47,10 @@ class Register {
 
         console.log("Creating PublicKeyCredential...");
 
-        let newCredential;
+        const creationOptions = Register.parseServerOptions(options);
+        let newCredential: Credential = { id: "", type: "" };
         try {
-            newCredential = await navigator.credentials.create({
-                publicKey: makeCredentialOptions
-            });
+            newCredential = await navigator.credentials.create(creationOptions);
         } catch (e) {
             var msg = "Could not create credentials in browser. Probably because the username is already registered with your authenticator. Please change username or authenticator.";
             console.error(msg, e);
@@ -93,52 +58,60 @@ class Register {
         }
 
 
-        console.log("PublicKeyCredential Created", newCredential);
-
         try {
-            Register.registerNewCredential(newCredential);
-
+            Register.registerNewCredential(<PublicKeyCredential>newCredential);
         } catch (err) {
             helper.showErrorAlert(err.message ? err.message : err);
         }
+        console.log("PublicKeyCredential Created", newCredential);
     }
 
-    private static async fetchMakeCredentialOptions(formData) : Promise<CredentialCreateOptions> {
-        let response = await fetch('fido/makeCredentialOptions', {
-            method: 'POST', // or 'PUT'
-            body: formData, // data can be `string` or {object}!
-            headers: {
-                'Accept': 'application/json'
-            }
+    private static parseServerOptions(options: Fido2.ICredentialCreateOptions): CredentialCreationOptions {
+        console.log("Credential Options Object", options);
+
+        let creationOptions: any = { publicKey: {} };
+        creationOptions.publicKey = Object.assign(creationOptions.publicKey, options);
+
+        // Turn the challenge back into the accepted format of padded base64
+        creationOptions.publicKey.challenge = helper.coerceToArrayBuffer(options.challenge);
+        // Turn ID into a UInt8Array Buffer for some reason
+        creationOptions.publicKey.user.id = helper.coerceToArrayBuffer(options.user.id);
+        
+        creationOptions.publicKey.excludeCredentials = options.excludeCredentials.map((c) => {
+            var desc = <PublicKeyCredentialDescriptor><any>c;
+            desc.id = helper.coerceToArrayBuffer(c.id);
+            return desc;
         });
 
-        let data = await response.json();
+        if (options.authenticatorSelection.authenticatorAttachment === null)
+            options.authenticatorSelection.authenticatorAttachment = undefined;
 
-        return data;
+        console.log("Credential Options Formatted", options);
+
+        return <CredentialCreationOptions>creationOptions;
     }
 
-
     // This should be used to verify the auth data with the server
-    private static async registerNewCredential(newCredential) {
+    private static async registerNewCredential(newCredential:PublicKeyCredential) {
         // Move data into Arrays in case it is super long
-        let attestationObject = new Uint8Array(newCredential.response.attestationObject);
-        let clientDataJSON = new Uint8Array(newCredential.response.clientDataJSON);
-        let rawId = new Uint8Array(newCredential.rawId);
+        const authenticatorResponse = <AuthenticatorAttestationResponse>newCredential.response;
+        const attestationObject = new Uint8Array(authenticatorResponse.attestationObject);
+        const clientDataJson = new Uint8Array(authenticatorResponse.clientDataJSON);
+        const rawId = new Uint8Array(newCredential.rawId);
 
-        const data = {
-            id: newCredential.id,
-            rawId: helper.coerceToBase64Url(rawId),
-            type: newCredential.type,
-            extensions: newCredential.getClientExtensionResults(),
-            response: {
-                AttestationObject: helper.coerceToBase64Url(attestationObject),
-                clientDataJson: helper.coerceToBase64Url(clientDataJSON)
-            }
-        };
+        const rawResponse = new Fido2.AuthenticatorAttestationRawResponse();
+        rawResponse.id = newCredential.id;
+        rawResponse.rawId = helper.coerceToBase64Url(rawId);
+        rawResponse.type = <any>newCredential.type;
+        rawResponse.extensions = new Fido2.AuthenticationExtensionsClientOutputs();
+        rawResponse.response = new Fido2.ResponseData({
+            attestationObject: helper.coerceToBase64Url(attestationObject),
+            clientDataJson: helper.coerceToBase64Url(clientDataJson)
+        });
 
-        let response;
+        let response = new Fido2.CredentialMakeResult;
         try {
-            response = await Register.registerCredentialWithServer(data);
+            response = await Register.client.makeCredential(rawResponse);
         } catch (e) {
             helper.showErrorAlert(e);
         }
@@ -165,24 +138,6 @@ class Register {
             focusConfirm: true,
         };
         Swal.fire(modalOptions);
-
-        // redirect to dashboard?
-        //window.location.href = "/dashboard/" + state.user.displayName;
-    }
-
-    private static async registerCredentialWithServer(formData) {
-        let response = await fetch('fido/makeCredential', {
-            method: 'POST', // or 'PUT'
-            body: JSON.stringify(formData), // data can be `string` or {object}!
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
-        });
-
-        let data = await response.json();
-
-        return data;
     }
 }
 

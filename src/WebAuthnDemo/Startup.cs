@@ -40,6 +40,8 @@ namespace WebAuthnDemo
             services.AddHttpContextAccessor();
             services.AddFido2(options => Configuration.Bind(nameof(Fido2Configuration), options));
 
+            services.AddSwaggerDocument();
+
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
         }
 
@@ -54,6 +56,9 @@ namespace WebAuthnDemo
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseCookiePolicy();
+
+            app.UseOpenApi();
+            app.UseSwaggerUi3();
 
             app.UseMvc(routes =>
             {
