@@ -28,7 +28,6 @@ namespace WebAuthnDemo
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-            
             services.AddSession(options =>
             {
                 options.IdleTimeout = TimeSpan.FromMinutes(5); // Short timeout for testing. Adjust properly for production environments

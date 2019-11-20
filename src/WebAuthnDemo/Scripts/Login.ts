@@ -26,8 +26,7 @@ class Login {
 
         // show options error to user
         if (makeAssertionOptions.status !== "ok") {
-            console.log("Error creating assertion options");
-            console.log(makeAssertionOptions.errorMessage);
+            console.error(`Error creating assertion options: ${makeAssertionOptions.errorMessage}`);
             helper.showErrorAlert(makeAssertionOptions.errorMessage);
             return;
         }

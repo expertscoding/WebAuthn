@@ -8,6 +8,7 @@ using Fido2NetLib.Development;
 using Fido2NetLib.Objects;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Fido2User = Fido2NetLib.Fido2User;
 
 namespace WebAuthnDemo.Controllers
 {
@@ -16,6 +17,7 @@ namespace WebAuthnDemo.Controllers
     [ApiController]
     public class FidoController : ControllerBase
     {
+        private const string AuthCookie = "WebAuthn.App";
         private readonly IFido2 fido2;
         private readonly DevelopmentInMemoryStore fidoStore;
 
@@ -224,8 +226,7 @@ namespace WebAuthnDemo.Controllers
                 };
 
                 // 5. Make the assertion
-                var res = await fido2.MakeAssertionAsync(clientResponse, options, creds.PublicKey, storedCounter,
-                    callback);
+                var res = await fido2.MakeAssertionAsync(clientResponse, options, creds.PublicKey, storedCounter, callback);
 
                 // 6. Store the updated counter
                 fidoStore.UpdateCounter(res.CredentialId, res.Counter);

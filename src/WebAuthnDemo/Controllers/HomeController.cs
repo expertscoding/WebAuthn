@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using Fido2NetLib.Development;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebAuthnDemo.Models;
 

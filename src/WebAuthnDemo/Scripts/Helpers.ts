@@ -68,6 +68,7 @@ class Helper {
     // HELPERS
 
     showErrorAlert(message: any, error: any = null) {
+        console.error(`Error creating assertion options: ${message}`, error);
         let footermsg = '';
         if (error) {
             footermsg = 'exception:' + error.toString();

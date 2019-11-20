@@ -2,19 +2,17 @@
 import { helper } from 'helpers';
 import { Fido2 } from 'Fido2';
 
-class Register {
+class RegisteredKeys {
     private static client: Fido2.FidoClient;
 
     constructor() {
-        document.getElementById('register').addEventListener('submit', this.handleRegistration);
-        Register.client = new Fido2.FidoClient(`https://${window.location.host}`);
+        document.getElementById('addLoginMethod').addEventListener('click', this.handleRegistration);
+        RegisteredKeys.client = new Fido2.FidoClient(`https://${window.location.host}`);
     }
-
     async handleRegistration(event): Promise<void> {
         event.preventDefault();
 
-        let username = (<HTMLInputElement>document.getElementById('registerUsername')).value;
-        let displayName = (<HTMLInputElement>document.getElementById('registerDisplayName')).value;
+        let username = document.getElementById('addLoginMethod').getAttribute("data-username");
 
         let options: Fido2.ICredentialCreateOptions = new Fido2.CredentialCreateOptions();
 
@@ -23,7 +21,7 @@ class Register {
             // authenticatorAttachment: possible values: <empty>, platform, cross-platform
             // userVerification: possible values: preferred, required, discouraged
             // requireResidentKey: possible values: true,false
-            options = await Register.client.makeCredentialOptions(username, displayName, "none", "", false, "preferred");
+            options = await RegisteredKeys.client.makeCredentialOptions(username, "", "none", "", false, "preferred");
         } catch (e) {
             helper.showErrorAlert("Request to server failed", e);
         }
@@ -35,7 +33,7 @@ class Register {
 
         let modalOptions = <SweetAlertOptions>{
             title: 'Registrando...',
-            text: 'Toca el botón de la llave de seguridad para finalizar el registro.',
+            text: 'Toca el botón de la llave de seguridad para registrar el método de autenticación.',
             imageUrl: "/images/securitykey.min.svg",
             allowOutsideClick: false,
             showCancelButton: true,
@@ -47,19 +45,19 @@ class Register {
 
         console.log("Creating PublicKeyCredential...");
 
-        const creationOptions = Register.parseServerOptions(options);
+        const creationOptions = RegisteredKeys.parseServerOptions(options);
         let newCredential: Credential = { id: "", type: "" };
         try {
             newCredential = await navigator.credentials.create(creationOptions);
         } catch (e) {
-            var msg = "Could not create credentials in browser. Probably because the username is already registered with your authenticator. Please change username or authenticator.";
+            var msg = "Could not create credentials in browser. Please change authenticator and try again or contact the site administrator.";
             console.error(msg, e);
             helper.showErrorAlert(msg, e);
         }
 
 
         try {
-            Register.registerNewCredential(<PublicKeyCredential>newCredential);
+            RegisteredKeys.registerNewCredential(<PublicKeyCredential>newCredential);
         } catch (err) {
             helper.showErrorAlert(err.message ? err.message : err);
         }
@@ -111,7 +109,7 @@ class Register {
 
         let response = new Fido2.CredentialMakeResult;
         try {
-            response = await Register.client.makeCredential(rawResponse);
+            response = await RegisteredKeys.client.makeCredential(rawResponse);
         } catch (e) {
             helper.showErrorAlert(e);
         }
@@ -137,8 +135,8 @@ class Register {
             showConfirmButton: true,
             focusConfirm: true,
         };
-        Swal.fire(modalOptions);
+        Swal.fire(modalOptions).then(_ => window.location.reload());
     }
 }
 
-export let register = new Register();
+export let registeredKeys = new RegisteredKeys();

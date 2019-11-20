@@ -10,33 +10,45 @@
     var existingCredentials = Store.GetCredentialsByUser(user);
 }
 
-<h2>Listado de claves</h2>
-<table class="table">
-    <thead>
-    <tr>
-        <td>F. Registro</td>
-        <td>Usos</td>
-        <td>UserHandle</td>
-        <td>Id. Usuario</td>
-        <td>Tipo Decl.</td>
-        <td>Clave Pública</td>
-    </tr>
-    </thead>
-    @foreach (var item in existingCredentials)
-    {
-        var userHandle = System.Text.Encoding.UTF8.GetString(item.UserHandle);
-        var userId = System.Text.Encoding.UTF8.GetString(item.UserId);
-        var publicKey = Convert.ToBase64String(item.PublicKey);
+<div class="row">
+    <div class="col-sm-12">
+        <h2>Listado de claves</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <td>F. Registro</td>
+                    <td>Usos</td>
+                    <td>UserHandle</td>
+                    <td>Id. Usuario</td>
+                    <td>Tipo Cred.</td>
+                    <td>Clave Pública</td>
+                </tr>
+            </thead>
+            @foreach (var item in existingCredentials)
+            {
+                var userHandle = System.Text.Encoding.UTF8.GetString(item.UserHandle);
+                var userId = System.Text.Encoding.UTF8.GetString(item.UserId);
+                var publicKey = Convert.ToBase64String(item.PublicKey);
 
-        <tr>
-            <td>@item.RegDate</td>
-            <td>@item.SignatureCounter</td>
-            <td>@userHandle</td>
-            <td>@userId</td>
-            <td>@item.CredType</td>
-            <td>
-                @publicKey.Substring(0, 40).Substring(0, 40)...
-            </td>
-        </tr>
-    }
-</table>
+                <tr>
+                    <td>@item.RegDate</td>
+                    <td>@item.SignatureCounter</td>
+                    <td>@userHandle</td>
+                    <td>@userId</td>
+                    <td>@item.CredType</td>
+                    <td>
+                        @publicKey.Substring(0, 40).Substring(0, 40)...
+                    </td>
+                </tr>
+            }
+        </table>
+        <div class="col-sm-12 mb-2"><a class="btn btn-outline-info" href="#" id="addLoginMethod" data-username="@username">Añadir otro método</a></div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        document.addEventListener("DOMContentLoaded", () => System.import("RegisteredKeys"));
+    </script>
+}
