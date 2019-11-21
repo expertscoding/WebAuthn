@@ -33,6 +33,14 @@ In this case, I'll recommend two options: [ngrok](https://ngrok.com/) or [localt
 The first one has some free tier, but https it's a premium feature. It works like a charm.  
 The second one it's free, even the https redirection to your localhost, but sometimes fails. 😔
 
+Finally, if you go with [localtunnel.me](https://github.com/localtunnel/localtunnel), after install the npm package (please refer to the repository), the command to establish the tunnel is:
+```dos
+lt -p 5000 --local-https local-cert .\localhost-demo.p12 --allow-invalid-cert
+```
+
+This will create the tunnel to port 5000 (the one where the demo app is running) enabling https redirect and ignoring invalid certificates.
+
+
 There are other options out there, take a look and choose whatever you want!
 
 ## License
