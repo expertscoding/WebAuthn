@@ -137,7 +137,11 @@ class Register {
             showConfirmButton: true,
             focusConfirm: true,
         };
-        Swal.fire(modalOptions);
+        await Swal.fire(modalOptions);
+
+        (<HTMLInputElement>document.getElementById('registerUsername')).value = "";
+        (<HTMLInputElement>document.getElementById('registerDisplayName')).value = "";
+        document.getElementById('loginUsername').focus();
     }
 }
 
