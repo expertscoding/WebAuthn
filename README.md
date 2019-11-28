@@ -43,5 +43,10 @@ This will create the tunnel to port 5000 (the one where the demo app is running)
 
 There are other options out there, take a look and choose whatever you want!
 
+## If you don't have a physical key
+
+Despite the original demo was made with a set of physical keys, for testing purposes (or even as a backup method), you have software alternatives in the form of a mobile app and browser plugin, [Krypton Authenticator](https://krypt.co/) is a great app that do the job.
+
+
 ## License
 This work is licensed under the [MIT License](LICENSE)
